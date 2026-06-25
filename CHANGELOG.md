@@ -2,6 +2,16 @@
 
 All notable changes to SimpCity Infinite Scroll are documented here. This file is the update-log source shown by the website catalog.
 
+## [Unreleased]
+
+### Added
+
+### Changed
+
+### Fixed
+
+### Security
+
 ## [1.0.0] - 2026-06-24
 
 ### Added
