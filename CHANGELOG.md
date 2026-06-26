@@ -12,6 +12,11 @@ All notable changes to SimpCity Infinite Scroll are documented here. This file i
 
 ### Security
 
+## [1.0.2] - 2026-06-26
+
+### Changed
+- Switched Tampermonkey dashboard icon metadata from SVG to PNG assets for reliable rendering.
+
 ## [1.0.1] - 2026-06-26
 
 ### Changed
