@@ -12,6 +12,11 @@ All notable changes to SimpCity Infinite Scroll are documented here. This file i
 
 ### Security
 
+## [1.0.1] - 2026-06-26
+
+### Changed
+- Added vylix logo metadata so Tampermonkey dashboard entries use the project icon.
+
 ## [1.0.0] - 2026-06-24
 
 ### Added

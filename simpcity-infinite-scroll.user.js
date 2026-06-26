@@ -1,10 +1,12 @@
 // ==UserScript==
 // @name         SimpCity Infinite Scroll
 // @namespace    https://github.com/vylix-dev/simpcity-infinite-scroll
-// @version      1.0.0
+// @version      1.0.1
 // @description  Automatically load additional SimpCity thread-list pages as you scroll.
 // @author       vylix-dev
 // @license      MIT
+// @icon         https://raw.githubusercontent.com/vylix-dev/vylix/main/public/vylix-logo.svg
+// @icon64       https://raw.githubusercontent.com/vylix-dev/vylix/main/public/vylix-logo.svg
 // @homepageURL  https://github.com/vylix-dev/simpcity-infinite-scroll
 // @supportURL   https://github.com/vylix-dev/simpcity-infinite-scroll/issues
 // @updateURL    https://raw.githubusercontent.com/vylix-dev/simpcity-infinite-scroll/main/simpcity-infinite-scroll.meta.js
