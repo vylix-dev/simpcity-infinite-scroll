@@ -12,6 +12,11 @@ All notable changes to SimpCity Infinite Scroll are documented here. This file i
 
 ### Security
 
+## [1.0.4] - 2026-07-05
+
+### Changed
+- Improved infinite-scroll URL state, batching, memory trimming, theme compatibility, and Cloudflare retry handling.
+
 ## [1.0.3] - 2026-06-27
 
 ### Changed

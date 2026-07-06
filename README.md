@@ -21,8 +21,11 @@ Keep `@version` in `simpcity-infinite-scroll.user.js`, `simpcity-infinite-scroll
 
 - Detects SimpCity thread-list containers and next-page links.
 - Fetches additional pages with the active browser session.
-- Buffers cloned thread rows before inserting them above a sentinel.
+- Buffers cloned thread rows before inserting them above a sentinel in batched DOM updates.
 - Uses `IntersectionObserver` to load more rows before the visitor reaches the bottom.
+- Updates the browser URL as later pages are inserted so refreshes reopen near the current page.
+- Trims very long sessions back to 500 thread rows to reduce memory pressure.
+- Retries Cloudflare/rate-limited page loads with backoff and exposes an inline Retry button if loading still fails.
 - Tracks visible and inserted thread IDs internally to avoid duplicates.
 
 ## Pairing with Hide Threads
