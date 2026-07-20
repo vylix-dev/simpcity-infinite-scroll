@@ -12,6 +12,17 @@ All notable changes to SimpCity Infinite Scroll are documented here. This file i
 
 ### Security
 
+## [1.0.6] - 2026-07-17
+
+### Changed
+- Reconnected Infinite Scroll after Thread Ratings restores watched threads to original order.
+- Made Infinite Scroll status and sentinel span the full Thread Grid row.
+
+## [1.0.5] - 2026-07-17
+
+### Changed
+- Pause infinite-scroll insertion while Thread Ratings sorts all watched-thread pages.
+
 ## [1.0.4] - 2026-07-05
 
 ### Changed

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SimpCity Infinite Scroll
 // @namespace    https://github.com/vylix-dev/simpcity-infinite-scroll
-// @version      1.0.4
+// @version      1.0.6
 // @description  Automatically load additional SimpCity thread-list pages as you scroll.
 // @author       vylix-dev
 // @license      MIT
@@ -35,6 +35,7 @@
   const MAX_THREAD_ROWS = 500;
   const MAX_FETCH_ATTEMPTS = 3;
   const INITIAL_RETRY_DELAY_MS = 2000;
+  const RATINGS_SORT_EVENT = 'simpcity-thread-ratings:sort-state';
 
   const CSS = String.raw`
     .scis-sentinel {
@@ -57,6 +58,11 @@
 
     .scis-status.scis-status-visible {
       display: block !important;
+    }
+
+    body.scg-enabled .scis-sentinel,
+    body.scg-enabled .scis-status {
+      grid-column: 1 / -1 !important;
     }
 
     .scis-retry-btn {
@@ -89,6 +95,7 @@
     done: false,
     lastError: false,
     lastErrorCloudflare: false,
+    pausedByRatings: false,
     seenIds: new Set(),
   };
 
@@ -212,6 +219,26 @@
     state.status.classList.toggle('scis-status-visible', visible);
   }
 
+  function isRatingsSortActive() {
+    return document.documentElement.dataset.scrRatingsSort === 'active';
+  }
+
+  function setRatingsSortPaused(active) {
+    state.pausedByRatings = active;
+
+    if (active) {
+      if (state.observer) {
+        state.observer.disconnect();
+        state.observer = null;
+      }
+      setStatus('Infinite scroll is paused while Thread Ratings sorts all watched threads.', true);
+      return;
+    }
+
+    setStatus('', false);
+    setupScroll();
+  }
+
   function prepareBufferedNode(node, id) {
     const clone = node.cloneNode(true);
     clone.dataset.scisThreadId = String(id);
@@ -246,7 +273,7 @@
   }
 
   async function fetchMore() {
-    if (state.fetching || state.done || !state.nextUrl) return;
+    if (state.pausedByRatings || state.fetching || state.done || !state.nextUrl) return;
     state.fetching = true;
     state.lastError = false;
     state.lastErrorCloudflare = false;
@@ -299,11 +326,11 @@
   }
 
   async function drain(count = DRAIN_BATCH_SIZE) {
-    if (!ensureContainer()) return 0;
+    if (state.pausedByRatings || !ensureContainer()) return 0;
 
     if (state.buffer.length < count && !state.fetching && !state.done) {
       await fetchMore();
-      if (state.lastError) return 0;
+      if (state.pausedByRatings || state.lastError) return 0;
     }
 
     const fragment = document.createDocumentFragment();
@@ -367,7 +394,7 @@
   }
 
   async function retryLoadMore() {
-    if (state.fetching || state.scrollBusy) return;
+    if (state.pausedByRatings || state.fetching || state.scrollBusy) return;
     state.lastError = false;
     state.lastErrorCloudflare = false;
     state.scrollBusy = true;
@@ -375,6 +402,7 @@
     try {
       setStatus('Loading more threads…', true);
       const added = await drain(DRAIN_BATCH_SIZE);
+      if (state.pausedByRatings) return;
       if (!state.lastError) setStatus('', false);
       if (!added && !state.lastError) finishIfExhausted();
     } finally {
@@ -382,10 +410,43 @@
     }
   }
 
+  function observeSentinel(sentinel) {
+    if (typeof IntersectionObserver !== 'function') {
+      setStatus('Infinite scroll is not supported by this browser.', true);
+      return;
+    }
+
+    const observer = new IntersectionObserver(async ([entry]) => {
+      if (state.pausedByRatings || !entry.isIntersecting || state.scrollBusy) return;
+      state.scrollBusy = true;
+
+      try {
+        if (finishIfExhausted(observer)) return;
+
+        setStatus('Loading more threads…', true);
+        const added = await drain(DRAIN_BATCH_SIZE);
+        if (state.pausedByRatings) return;
+        if (!state.lastError) setStatus('', false);
+
+        if (!added && !state.lastError) finishIfExhausted(observer);
+      } finally {
+        state.scrollBusy = false;
+      }
+    }, { rootMargin: getObserverRootMargin() });
+
+    state.observer = observer;
+    observer.observe(sentinel);
+  }
+
   function setupScroll() {
-    if (!ensureContainer()) return;
+    if (state.pausedByRatings || !ensureContainer()) return;
     if (!state.nextUrl && !state.buffer.length) return;
-    if (state.sentinel && state.sentinel.isConnected && state.sentinel.parentNode === state.container) return;
+
+    const hasLiveSentinel = state.sentinel && state.sentinel.isConnected && state.sentinel.parentNode === state.container;
+    if (hasLiveSentinel) {
+      if (!state.observer) observeSentinel(state.sentinel);
+      return;
+    }
 
     if (state.observer) {
       state.observer.disconnect();
@@ -405,31 +466,7 @@
     sentinel.insertAdjacentElement('afterend', status);
     state.sentinel = sentinel;
     state.status = status;
-
-    if (typeof IntersectionObserver !== 'function') {
-      setStatus('Infinite scroll is not supported by this browser.', true);
-      return;
-    }
-
-    const observer = new IntersectionObserver(async ([entry]) => {
-      if (!entry.isIntersecting || state.scrollBusy) return;
-      state.scrollBusy = true;
-
-      try {
-        if (finishIfExhausted(observer)) return;
-
-        setStatus('Loading more threads…', true);
-        const added = await drain(DRAIN_BATCH_SIZE);
-        if (!state.lastError) setStatus('', false);
-
-        if (!added && !state.lastError) finishIfExhausted(observer);
-      } finally {
-        state.scrollBusy = false;
-      }
-    }, { rootMargin: getObserverRootMargin() });
-
-    state.observer = observer;
-    observer.observe(sentinel);
+    observeSentinel(sentinel);
   }
 
   function isContainerRelevantNode(node) {
@@ -444,6 +481,7 @@
     if (containerObserver) return;
 
     containerObserver = new MutationObserver((mutationList) => {
+      if (state.pausedByRatings) return;
       for (const mutation of mutationList) {
         for (const node of mutation.addedNodes || []) {
           if (!isContainerRelevantNode(node)) continue;
@@ -464,12 +502,14 @@
     initialized = true;
 
     addStyle(CSS);
+    document.addEventListener(RATINGS_SORT_EVENT, (event) => setRatingsSortPaused(Boolean(event.detail?.active)));
+    state.pausedByRatings = isRatingsSortActive();
     watchContainerChanges();
     state.container = findContainer();
     state.nextUrl = nextPageLink(document, window.location.href);
     rememberVisibleRows(document);
 
-    if (!state.container || !state.nextUrl) return;
+    if (state.pausedByRatings || !state.container || !state.nextUrl) return;
 
     setupScroll();
     await fetchMore();
